@@ -908,7 +908,7 @@ namespace RevitProjectDataAddin
 
             // 3) Chuỗi nối mặc định (y=300)
             double yChain = 300; // mm tính từ đáy (y=0)
-            ShowOrInitBeamRebarData();
+            //ShowOrInitBeamRebarData();
 
             DrawLine_Rec(canvas, T, item, pos.First(), yChain, pos.Last(), yChain, Brushes.Black, 1.2, null, "CHAIN");
 
@@ -921,6 +921,9 @@ namespace RevitProjectDataAddin
                 string leftName = names[i];
                 string rightName = names[i + 1];
                 var (G0, 上側, 下側, 梁の段差1) = GetBeamValuesByPosition(selF, selY, leftName, rightName);
+                var zcfg = GetRebarConfigForSpan(selF, string.IsNullOrWhiteSpace(G0) ? "G0" : G0);
+                var (中央幅, 中央成) = GetBeamSize(selF, G0);
+
                 ///////
                 double x0 = pos[i];
                 double x1 = pos[i + 1];
@@ -939,7 +942,7 @@ namespace RevitProjectDataAddin
                                       tsuIsX, tsuIsY, item);
 
                 // Vạch đánh dấu 200mm cao, màu xanh
-                double tick = 5000;
+                //double tick = 5000;
 
                 //// 1/4L (trái)
                 DrawLine_Rec(canvas, T, item, qL, yChain + 600, qL, yChain + 4900,
@@ -949,24 +952,16 @@ namespace RevitProjectDataAddin
                 //// 1/8L (trái)
                 //DrawLine_Rec(canvas, T, item, qL1, yChain - tick, qL1, yChain + tick,
                 //             Brushes.Red, 1.2, null, "MARK");
-                DrawText_Rec(canvas, T, item, "3",
-                         qL1, yChain + 1500,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         qL1, yChain + 1700,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         qL1, yChain + 1900,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         qL1, yChain + 2350,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         qL1, yChain + 2550,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "3",
-                         qL1, yChain + 2750,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                if (zcfg != null)
+                {
+                    DrawText_Rec(canvas, T, item, zcfg.端部1上筋本数, qL1, yChain + 1500, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部1上宙1, qL1, yChain + 1700, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部1上宙2, qL1, yChain + 1900, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部1下宙1, qL1, yChain + 2350, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部1下宙2, qL1, yChain + 2550, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部1下筋本数, qL1, yChain + 2750, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                }
+
                 DrawLine_Rec(canvas, T, item, qL1 - 500, yChain + 1300, qL1 + 500, yChain + 1300,
                          Brushes.Blue, 1.2, null, "CHAIN");
                 DrawLine_Rec(canvas, T, item,
@@ -993,25 +988,18 @@ namespace RevitProjectDataAddin
                 DrawText_Rec(canvas, T, item, $"({梁の段差1})",
                          mid, yChain + 1200,
                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "3",
-                         mid, yChain + 1500,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         mid, yChain + 1700,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         mid, yChain + 1900,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         mid, yChain + 2350,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         mid, yChain + 2550,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "3",
-                         mid, yChain + 2750,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "600x900",
+                if (zcfg != null)
+                {
+                    DrawText_Rec(canvas, T, item, zcfg.中央上筋本数, mid, yChain + 1500, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.中央上宙1, mid, yChain + 1700, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.中央上宙2, mid, yChain + 1900, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.中央下宙1, mid, yChain + 2350, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.中央下宙2, mid, yChain + 2550, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.中央下筋本数, mid, yChain + 2750, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                }
+                // (dòng "600x900" giữ nguyên nếu bạn chưa đưa tiết diện từ dữ liệu)
+
+                DrawText_Rec(canvas, T, item, $"{中央幅}x{中央成}",
                          mid, yChain + 3050,
                          12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
                 DrawLine_Rec(canvas, T, item, mid - 500, yChain + 1300, mid + 500, yChain + 1300,
@@ -1038,24 +1026,16 @@ namespace RevitProjectDataAddin
                 //             12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
                 DrawLine_Rec(canvas, T, item, qR, yChain + 600, qR, yChain + 4900,
                          Brushes.Green, 1.2, null, "MARK");
-                DrawText_Rec(canvas, T, item, "3",
-                         qR1, yChain + 1500,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         qR1, yChain + 1700,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         qR1, yChain + 1900,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "0",
-                         qR1, yChain + 2350,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "2",
-                         qR1, yChain + 2550,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
-                DrawText_Rec(canvas, T, item, "3",
-                         qR1, yChain + 2750,
-                         12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                if (zcfg != null)
+                {
+                    DrawText_Rec(canvas, T, item, zcfg.端部2上筋本数, qR1, yChain + 1500, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部2上宙1, qR1, yChain + 1700, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部2上宙2, qR1, yChain + 1900, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部2下宙1, qR1, yChain + 2350, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部2下宙2, qR1, yChain + 2550, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                    DrawText_Rec(canvas, T, item, zcfg.端部2下筋本数, qR1, yChain + 2750, 12, Brushes.Red, HAnchor.Center, VAnchor.Bottom, 200, "TEXT");
+                }
+
                 DrawLine_Rec(canvas, T, item, qR1 - 500, yChain + 1300, qR1 + 500, yChain + 1300,
                          Brushes.Blue, 1.2, null, "CHAIN");
                 DrawLine_Rec(canvas, T, item,
@@ -1525,5 +1505,79 @@ namespace RevitProjectDataAddin
             }
             return ("", 0, 0, 0);
         }
+        // ===== Helper: lấy Z梁の配置 (配筋) theo G符号 của nhịp trên 1 tầng =====
+        private Z梁の配置 GetRebarConfigForSpan(string kai, string gSym)
+        {
+            if (string.IsNullOrWhiteSpace(gSym)) gSym = "G0";
+
+            // 1) tìm danh sách 梁 của tầng 'kai'
+            var floorBeamList = _projectData?.リスト?.梁リスト?
+                .FirstOrDefault(r => r?.各階 == kai);
+            if (floorBeamList == null) return null;
+
+            // 2) tìm đúng beam theo Name == gSym; nếu không thì rơi về beam đầu
+            var beam = floorBeamList.梁?.FirstOrDefault(b => b?.Name == gSym)
+                    ?? floorBeamList.梁?.FirstOrDefault();
+            if (beam == null) return null;
+
+            // 3) đảm bảo có cấu hình 配置
+            if (beam.梁の配置 == null)
+                beam.梁の配置 = new Z梁の配置();
+
+            // 4) fallback "1" để hiển thị không bị rỗng
+            string F(string s) => string.IsNullOrWhiteSpace(s) ? "1" : s;
+            var z = beam.梁の配置;
+
+            z.端部1上筋本数 = F(z.端部1上筋本数);
+            z.端部1上宙1 = F(z.端部1上宙1);
+            z.端部1上宙2 = F(z.端部1上宙2);
+            z.端部1下宙1 = F(z.端部1下宙1);
+            z.端部1下宙2 = F(z.端部1下宙2);
+            z.端部1下筋本数 = F(z.端部1下筋本数);
+
+            z.中央上筋本数 = F(z.中央上筋本数);
+            z.中央上宙1 = F(z.中央上宙1);
+            z.中央上宙2 = F(z.中央上宙2);
+            z.中央下宙1 = F(z.中央下宙1);
+            z.中央下宙2 = F(z.中央下宙2);
+            z.中央下筋本数 = F(z.中央下筋本数);
+
+            z.端部2上筋本数 = F(z.端部2上筋本数);
+            z.端部2上宙1 = F(z.端部2上宙1);
+            z.端部2上宙2 = F(z.端部2上宙2);
+            z.端部2下宙1 = F(z.端部2下宙1);
+            z.端部2下宙2 = F(z.端部2下宙2);
+            z.端部2下筋本数 = F(z.端部2下筋本数);
+
+            return z;
+        }
+        // Hàm lấy thông tin kích thước (中央幅, 中央成) từ beam theo G符号
+        private (string 中央幅, string 中央成) GetBeamSize(string kai, string gSym)
+        {
+            if (string.IsNullOrWhiteSpace(gSym)) gSym = "G0";
+
+            // 1) tìm danh sách梁 theo tầng kai
+            var floorBeamList = _projectData?.リスト?.梁リスト?
+                .FirstOrDefault(r => r?.各階 == kai);
+            if (floorBeamList == null) return ("", "");
+
+            // 2) lấy đúng beam theo tên G符号
+            var beam = floorBeamList.梁?.FirstOrDefault(b => b?.Name == gSym)
+                    ?? floorBeamList.梁?.FirstOrDefault();
+            if (beam == null) return ("", "");
+
+            // 3) đảm bảo beam có 配置
+            if (beam.梁の配置 == null)
+                beam.梁の配置 = new Z梁の配置();
+
+            // 4) fallback: nếu trống → trả về mặc định
+            string F(string s, string def) => string.IsNullOrWhiteSpace(s) ? def : s;
+
+            string 中央幅 = F(beam.梁の配置.中央幅, "900");
+            string 中央成 = F(beam.梁の配置.中央成, "650");
+
+            return (中央幅, 中央成);
+        }
+
     }
 }

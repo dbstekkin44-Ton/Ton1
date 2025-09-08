@@ -3549,8 +3549,8 @@ public class Z梁の配置 : INotifyPropertyChanged
         File.AppendAllText("debugdata.txt", Environment.NewLine + "------------------------------------Z梁の配置 mac dinh----------------------------------" + Environment.NewLine);
 
         // Sample data for top grid TextBoxes and ComboBoxes
-        端部1幅 = "800";
-        端部1成 = "600";
+        端部1幅 = "600";
+        端部1成 = "900";
         端部1主筋径 = "22";
         端部1主筋材質 = "SD390";
         端部1上筋本数 = "4";
@@ -3570,8 +3570,8 @@ public class Z梁の配置 : INotifyPropertyChanged
         端部1中子筋形 = "1";
         端部1中子筋本数 = "2";
 
-        中央幅 = "900";
-        中央成 = "650";
+        中央幅 = "600";
+        中央成 = "900";
         中央主筋径 = "25";
         中央材質 = "SD390";
         中央上筋本数 = "5";
@@ -3595,8 +3595,8 @@ public class Z梁の配置 : INotifyPropertyChanged
         端部1幅止筋径 = "10";
         端部1幅止筋ピッチ = "200";
 
-        端部2幅 = "850";
-        端部2成 = "620";
+        端部2幅 = "600";
+        端部2成 = "900";
         端部2主筋径 = "19";
         端部2主筋材質 = "SD390";
         端部2上筋本数 = "4";
