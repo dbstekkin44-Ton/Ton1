@@ -223,6 +223,20 @@ namespace RevitProjectDataAddin
             return DrawDotPx(c, T, wx, wy, sizePx, fill ?? Brushes.Gray, stroke, strokePx);
         }
 
+        private Ellipse DrawFilledDot_Insert(Canvas c, WCTransform T, GridBotsecozu owner,
+                                             double wx, double wy, double rMm = 25,
+                                             Brush fill = null, string layer = "MARK")
+        {
+            SceneFor(owner).Add(new DxfInsertDot(wx, wy, rMm, layer));
+
+            double dpx = Math.Max(3.0, 2.0 * rMm * T.Scale);
+            var p = T.P(wx, wy);
+            var el = new Ellipse { Width = dpx, Height = dpx, Fill = fill ?? Brushes.White, Stroke = null };
+            Canvas.SetLeft(el, p.X - dpx / 2); Canvas.SetTop(el, p.Y - dpx / 2);
+            c.Children.Add(el);
+            return el;
+        }
+
         // Nối các trục liên tiếp tại cao độ yChain (world, mm).
         void DrawAxisChain(Canvas c, WCTransform T, IList<double> pos, IList<double> spans,
                            double yChain, Brush stroke, double thickness,
@@ -1118,7 +1132,7 @@ namespace RevitProjectDataAddin
             return (lines, texts, key);
         }
         // ===== [SCENE] Build DXF từ Scene (fallback qua dữ liệu nếu Scene trống) =====
-        private (List<DxfLine> lines, List<DxfText> texts, List<DxfCircle> circles, string fileKey)
+        private (List<DxfLine> lines, List<DxfText> texts, List<DxfCircle> circles, List<DxfInsertDot> dots, string fileKey)
         BuildDxfGeometry(GridBotsecozu item)
         {
             string key = $"{_currentSecoList.階を選択}_{_currentSecoList.通を選択}";
@@ -1127,21 +1141,24 @@ namespace RevitProjectDataAddin
                 var lines = new List<DxfLine>();
                 var texts = new List<DxfText>();
                 var circles = new List<DxfCircle>();
+                var dots = new List<DxfInsertDot>();
                 foreach (var sh in scene)
                 {
                     if (sh is SceneLine ln) lines.Add(new DxfLine(ln.X1, ln.Y1, ln.X2, ln.Y2, ln.Layer));
                     else if (sh is DxfText tx) texts.Add(tx);
                     else if (sh is DxfCircle cc) circles.Add(cc);
+                    else if (sh is DxfInsertDot di) dots.Add(di);
                 }
-                return (lines, texts, circles, key);
+                return (lines, texts, circles, dots, key);
             }
 
             // Fallback nếu Scene trống (giữ nguyên; và trả thêm circles = new())
             var flines = new List<DxfLine>();
             var ftexts = new List<DxfText>();
             var fcircs = new List<DxfCircle>();
+            var fdots = new List<DxfInsertDot>();
             // ... build nếu bạn có ...
-            return (flines, ftexts, fcircs, key);
+            return (flines, ftexts, fcircs, fdots, key);
         }
 
 
@@ -1160,18 +1177,32 @@ namespace RevitProjectDataAddin
             { X = x; Y = y; R = r; Layer = string.IsNullOrWhiteSpace(layer) ? "0" : layer; }
         }
 
+        struct DxfInsertDot
+        {
+            public double X, Y, R;
+            public string Layer;
+            public DxfInsertDot(double x, double y, double r, string layer = "MARK")
+            { X = x; Y = y; R = r; Layer = string.IsNullOrWhiteSpace(layer) ? "MARK" : layer; }
+        }
+
         // ===== GHI DXF (LINE + TEXT), flipY để CAD nhìn cùng hướng Canvas =====
         private void WriteSimpleDxf(
       string path,
       IEnumerable<DxfLine> lines,
       IEnumerable<DxfText> texts,
       IEnumerable<DxfCircle> circles,
+      IEnumerable<DxfInsertDot> dots,
       bool flipY = true)
         {
             using (var sw = new StreamWriter(path, false, System.Text.Encoding.ASCII))
             {
                 sw.WriteLine("0"); sw.WriteLine("SECTION");
                 sw.WriteLine("2"); sw.WriteLine("HEADER");
+                sw.WriteLine("0"); sw.WriteLine("ENDSEC");
+
+                sw.WriteLine("0"); sw.WriteLine("SECTION");
+                sw.WriteLine("2"); sw.WriteLine("BLOCKS");
+                WriteDotBlock(sw);
                 sw.WriteLine("0"); sw.WriteLine("ENDSEC");
 
                 sw.WriteLine("0"); sw.WriteLine("SECTION");
@@ -1223,9 +1254,74 @@ namespace RevitProjectDataAddin
                     sw.WriteLine("40"); sw.WriteLine(c.R.ToString(CultureInfo.InvariantCulture));
                 }
 
+                if (dots != null)
+                {
+                    foreach (var d in dots)
+                    {
+                        var y = flipY ? -d.Y : d.Y;
+                        sw.WriteLine("0"); sw.WriteLine("INSERT");
+                        sw.WriteLine("8"); sw.WriteLine(string.IsNullOrEmpty(d.Layer) ? "MARK" : d.Layer);
+                        sw.WriteLine("2"); sw.WriteLine("DOT");
+                        sw.WriteLine("10"); sw.WriteLine(d.X.ToString(CultureInfo.InvariantCulture));
+                        sw.WriteLine("20"); sw.WriteLine(y.ToString(CultureInfo.InvariantCulture));
+                        sw.WriteLine("30"); sw.WriteLine("0");
+                        sw.WriteLine("41"); sw.WriteLine(d.R.ToString(CultureInfo.InvariantCulture));
+                        sw.WriteLine("42"); sw.WriteLine(d.R.ToString(CultureInfo.InvariantCulture));
+                        sw.WriteLine("43"); sw.WriteLine("1");
+                        sw.WriteLine("50"); sw.WriteLine("0");
+                    }
+                }
+
                 sw.WriteLine("0"); sw.WriteLine("ENDSEC");
                 sw.WriteLine("0"); sw.WriteLine("EOF");
             }
+        }
+
+        private static void WriteDotBlock(StreamWriter sw)
+        {
+            sw.WriteLine("0"); sw.WriteLine("BLOCK");
+            sw.WriteLine("8"); sw.WriteLine("0");
+            sw.WriteLine("2"); sw.WriteLine("DOT");
+            sw.WriteLine("70"); sw.WriteLine("0");
+            sw.WriteLine("10"); sw.WriteLine("0");
+            sw.WriteLine("20"); sw.WriteLine("0");
+            sw.WriteLine("30"); sw.WriteLine("0");
+
+            sw.WriteLine("0"); sw.WriteLine("HATCH");
+            sw.WriteLine("8"); sw.WriteLine("0");
+            sw.WriteLine("100"); sw.WriteLine("AcDbEntity");
+            sw.WriteLine("100"); sw.WriteLine("AcDbHatch");
+            sw.WriteLine("10"); sw.WriteLine("0");
+            sw.WriteLine("20"); sw.WriteLine("0");
+            sw.WriteLine("30"); sw.WriteLine("0");
+            sw.WriteLine("2"); sw.WriteLine("SOLID");
+            sw.WriteLine("70"); sw.WriteLine("1");
+            sw.WriteLine("71"); sw.WriteLine("0");
+            sw.WriteLine("91"); sw.WriteLine("1");
+            sw.WriteLine("92"); sw.WriteLine("0");
+            sw.WriteLine("93"); sw.WriteLine("2");
+
+            sw.WriteLine("72"); sw.WriteLine("2");
+            sw.WriteLine("10"); sw.WriteLine("0");
+            sw.WriteLine("20"); sw.WriteLine("0");
+            sw.WriteLine("40"); sw.WriteLine("1");
+            sw.WriteLine("50"); sw.WriteLine("0");
+            sw.WriteLine("51"); sw.WriteLine(Math.PI.ToString(CultureInfo.InvariantCulture));
+            sw.WriteLine("73"); sw.WriteLine("1");
+
+            sw.WriteLine("72"); sw.WriteLine("2");
+            sw.WriteLine("10"); sw.WriteLine("0");
+            sw.WriteLine("20"); sw.WriteLine("0");
+            sw.WriteLine("40"); sw.WriteLine("1");
+            sw.WriteLine("50"); sw.WriteLine(Math.PI.ToString(CultureInfo.InvariantCulture));
+            sw.WriteLine("51"); sw.WriteLine((2 * Math.PI).ToString(CultureInfo.InvariantCulture));
+            sw.WriteLine("73"); sw.WriteLine("1");
+
+            sw.WriteLine("97"); sw.WriteLine("1");
+            sw.WriteLine("10"); sw.WriteLine("0");
+            sw.WriteLine("20"); sw.WriteLine("0");
+
+            sw.WriteLine("0"); sw.WriteLine("ENDBLK");
         }
 
         // ===== Export handlers =====
@@ -1244,16 +1340,18 @@ namespace RevitProjectDataAddin
             var allLines = new List<DxfLine>();
             var allTexts = new List<DxfText>();
             var allCircles = new List<DxfCircle>();
+            var allDots = new List<DxfInsertDot>();
 
             foreach (var it in _currentSecoList.gridbotsecozu)
             {
-                var (lines, texts, circles, _) = BuildDxfGeometry(it);
+                var (lines, texts, circles, dots, _) = BuildDxfGeometry(it);
                 allLines.AddRange(lines);
                 allTexts.AddRange(texts);
                 allCircles.AddRange(circles);
+                allDots.AddRange(dots);
             }
 
-            WriteSimpleDxf(dlg.FileName, allLines, allTexts, allCircles, flipY: true);
+            WriteSimpleDxf(dlg.FileName, allLines, allTexts, allCircles, allDots, flipY: true);
 
             MessageBox.Show("DXF exported!");
         }
@@ -1264,7 +1362,7 @@ namespace RevitProjectDataAddin
             var item = fe != null ? fe.DataContext as GridBotsecozu : null;
             if (item == null) return;
 
-            var (lines, texts, circles, key) = BuildDxfGeometry(item);
+            var (lines, texts, circles, dots, key) = BuildDxfGeometry(item);
             var dlg = new SaveFileDialog
             {
                 Filter = "AutoCAD DXF (*.dxf)|*.dxf",
@@ -1272,7 +1370,7 @@ namespace RevitProjectDataAddin
             };
             if (dlg.ShowDialog() == true)
             {
-                WriteSimpleDxf(dlg.FileName, lines, texts, circles, flipY: true);
+                WriteSimpleDxf(dlg.FileName, lines, texts, circles, dots, flipY: true);
                 MessageBox.Show("DXF exported!");
             }
         }
